@@ -1,0 +1,155 @@
+/* styles.qss — корпоративный стиль приложения MODTFIL */
+
+/* ------------------------------
+   Основные цвета
+   ------------------------------ */
+QWidget {
+    background-color: #f7f9fc;
+    font-family: "Segoe UI", "Arial";
+    font-size: 11pt;
+    color: #2e2e2e;
+}
+
+/* ------------------------------
+   Заголовки и метки
+   ------------------------------ */
+QLabel {
+    font-weight: 500;
+}
+
+QLabel#TitleLabel {
+    font-size: 16pt;
+    font-weight: bold;
+    color: #0078d4;
+}
+
+/* ------------------------------
+   Кнопки
+   ------------------------------ */
+QPushButton {
+    background-color: #0078d4;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-weight: 500;
+    transition: 0.3s;
+}
+
+QPushButton:hover {
+    background-color: #005ea6;
+}
+
+QPushButton:pressed {
+    background-color: #004a82;
+}
+
+/* Специальные кнопки навигации */
+QPushButton#NavButton {
+    background: transparent;
+    color: #2e2e2e;
+    text-align: left;
+    padding: 10px 20px;
+    border-radius: 0;
+}
+
+QPushButton#NavButton:hover {
+    background-color: #b0c4de;
+    color: #0078d4;
+}
+
+/* ------------------------------
+   Поля ввода
+   ------------------------------ */
+QLineEdit, QComboBox, QTextEdit, QDateEdit {
+    background-color: white;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    padding: 5px 8px;
+}
+
+QLineEdit:focus, QComboBox:focus, QTextEdit:focus, QDateEdit:focus {
+    border: 1px solid #0078d4;
+}
+
+/* ------------------------------
+   Таблицы
+   ------------------------------ */
+QTableWidget {
+    background-color: white;
+    border: 1px solid #dcdde1;
+    gridline-color: #e1e4e8;
+    selection-background-color: #0078d4;
+    selection-color: white;
+}
+
+QHeaderView::section {
+    background-color: #f2f4f8;
+    padding: 6px;
+    border: none;
+    font-weight: 600;
+}
+
+/* ------------------------------
+   Scrollbars
+   ------------------------------ */
+QScrollBar:vertical {
+    border: none;
+    background: #bde0ff;
+    width: 10px;
+    margin: 0;
+}
+
+QScrollBar::handle:vertical {
+    background: #c5c9d2;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #9aa0ab;
+}
+
+/* ------------------------------
+   Сообщения (QMessageBox)
+   ------------------------------ */
+QMessageBox {
+    background-color: #ffffff;
+}
+
+QPushButton#MsgBoxButton {
+    background-color: #0078d4;
+    color: white;
+    border-radius: 4px;
+    padding: 5px 10px;
+}
+
+/* ------------------------------
+   Чекбоксы (фикс кликов)
+   ------------------------------ */
+QCheckBox {
+    background: transparent;
+    color: #2e2e2e;
+    spacing: 8px; /* расстояние между квадратиком и текстом */
+}
+
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    border-radius: 3px;
+    border: 1px solid #888;
+    background-color: #fff;
+}
+
+QCheckBox::indicator:checked {
+    background-color: #0078d4;
+    image: none;
+}
+
+QCheckBox::indicator:unchecked {
+    background-color: #f0f0f0;
+    image: none;
+}
+
+QCheckBox:hover {
+    color: #0078d4;
+}
