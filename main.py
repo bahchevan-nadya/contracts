@@ -134,7 +134,6 @@ class MainWindow(QMainWindow):
     # Показывает диалог добавления договора
     def show_add_contract_dialog(self):
         try:
-            print(f"main 137 {self.user_id}")
             dialog = ContractForm(self.db, parent=self, current_user_id=self.user_id)
             dialog.exec()
             self.load_contracts()

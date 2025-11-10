@@ -253,7 +253,6 @@ class Add_agreement_dialog(QDialog):
                 file_name = os.path.basename(path)  # или Path(path).name
                 self.lbl_file.setText(f"Выбран файл: {file_name}")
                 self.lbl_file.setStyleSheet("color: green; font-style: normal;")
-                print(f"DEBUG: Выбран файл доп. соглашения: {path}")
         except Exception as e:
             # Чтобы видеть ошибки, если вдруг что-то ещё упадёт
             import traceback

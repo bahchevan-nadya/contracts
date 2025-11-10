@@ -299,7 +299,6 @@ class ContractForm(QDialog):
         if path:
             self.file_path = path
             self.lbl_file.setText(os.path.basename(path))
-            print(f"DEBUG: Выбран файл договора: {path}")
 
     def clear_form(self):
         self.txt_number.clear()
@@ -350,18 +349,19 @@ class ContractForm(QDialog):
             counterparty_id = self.db.get_counterparty_id_by_inn(inn)
 
             if getattr(self, "is_edit_mode", False):
-                # режим редактирования
-                if not counterparty_id:
-                    # Если почему-то не нашли по ИНН — попробуем по имени
-                    counterparty_id = self.db.get_counterparty_id_by_name(counterparty_name)
-                if not counterparty_id:
-                    # Если всё равно не нашли — просто оставляем старого
-                    counterparty_id = self.contract.get("counterparty_id")
-                else:
-                    # Если нашли, можно обновить имя или ИНН, если нужно
+                # Пытаемся по ИНН → по имени → из текущего контракта
+                counterparty_id = (
+                        counterparty_id
+                        or self.db.get_counterparty_id_by_name(counterparty_name)
+                        or (self.contract or {}).get("counterparty_id")
+                )
+
+                if counterparty_id:
                     self.db.update_counterparty(counterparty_id, counterparty_name, inn)
+                else:
+                    # если вообще ничего не нашли — создаём, чтобы гарантировать ID
+                    counterparty_id = self.db.add_counterparty(counterparty_name, inn)
             else:
-                # режим добавления нового договора
                 if not counterparty_id:
                     counterparty_id = self.db.add_counterparty(counterparty_name, inn)
 
@@ -583,7 +583,6 @@ class ContractForm(QDialog):
             # --- Сохраняем ссылку на текущий договор ---
             self.contract = contract_data
             self.contract_id = contract_data.get("id_contract")
-            print(f"DEBUG: Загружаен договор ID: {self.contract_id}")
 
             self.is_edit_mode = True
             # --- Основные поля договора ---

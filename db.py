@@ -15,11 +15,11 @@ class Database:
         """Инициализация подключения к БД"""
         try:
             self.conn = psycopg2.connect(
-                dbname="modtfil",
-                user="postgres",
-                password="12345",
-                host="127.0.1.45",
-                port="5432"
+                dbname = "modtfil",
+                user = "postgres",
+                password = "12345",
+                host = "127.0.1.45",
+                port = "5432"
             )
             self.conn.autocommit = True
         except Exception as e:
