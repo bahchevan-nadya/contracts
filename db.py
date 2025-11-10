@@ -456,7 +456,7 @@ class Database:
         try:
             if isinstance(contract_data, RealDictRow):
                 contract_data = dict(contract_data)
-            print("Original data:", contract_data)
+            print("Original data: bebebe", contract_data)
 
             contract_data = self._convert_to_simple_types(contract_data)
             print("Converted data:", contract_data)
