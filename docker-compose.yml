@@ -1,0 +1,12 @@
+services:
+  pg:
+    image: postgres:17
+    container_name: pg_local
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: modtfil
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./backup:/backup

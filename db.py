@@ -7,6 +7,7 @@ from psycopg2.extras import RealDictRow, RealDictCursor
 from contextlib import contextmanager
 import os
 
+
 class Database:
     """Класс для работы с базой данных PostgreSQL"""
 
@@ -227,29 +228,18 @@ class Database:
             print(f"Ошибка при получении ID типа: {e}")
             return None
     # ---------- ДОГОВОРЫ ----------
-    def add_object(self, name_object, address):
-        try:
-            with self.conn.cursor() as cur:
-                cur.execute("""
-                    SELECT id_object
-                    FROM object
-                    WHERE name_object = %s AND address = %s
-                """, (name_object, address))
-                row = cur.fetchone()
-                if row:
-                    return row[0]
-
-                cur.execute("""
-                    INSERT INTO object (name_object, address)
-                    VALUES (%s, %s) RETURNING id_object
-                """, (name_object, address))
-                new_id = cur.fetchone()[0]
-                self.conn.commit()
-                return new_id
-        except Exception as e:
-            print(f"Ошибка при добавлении объекта: {e}")
-            self.conn.rollback()
-            return None
+    def add_object(self, name: str, address: str) -> int:
+        with self.conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO object (name_object, address)
+                VALUES (%s, %s) RETURNING id_object
+                """,
+                (name, address),
+            )
+            oid = cur.fetchone()[0]
+        self.conn.commit()
+        return oid
 
     def link_object_counterparty(self, object_id, counterparty_id):
         try:
@@ -456,10 +446,8 @@ class Database:
         try:
             if isinstance(contract_data, RealDictRow):
                 contract_data = dict(contract_data)
-            print("Original data: bebebe", contract_data)
 
             contract_data = self._convert_to_simple_types(contract_data)
-            print("Converted data:", contract_data)
 
             contract_id = contract_data.get("id_contract")
             if not contract_id:
@@ -477,9 +465,6 @@ class Database:
             # Обрабатываем остальные ID
             type_id = self.safe_id(contract_data.get("type_id"), "id_type")
             object_counterparty_id = self.safe_id(contract_data.get("object_counterparty_id"), "id_obgect_counterparty")
-
-            print(
-                f"Processed IDs - user_id: {user_id}, type_id: {type_id}, object_counterparty_id: {object_counterparty_id}")
 
             with self.conn.cursor() as cur:
                 cur.execute("""
@@ -504,7 +489,6 @@ class Database:
                             ))
 
                 self.conn.commit()
-                print(f"Успешно обновлен контракт с ID {contract_id}")
                 return True
 
         except Exception as e:
@@ -513,15 +497,11 @@ class Database:
             return False
 
     # ---------- КОНТРАГЕНТЫ ----------
-    def get_counterparty_id_by_inn(self, inn):
-        try:
-            with self.conn.cursor() as cur:
-                cur.execute("SELECT id_counterparty FROM counterparty WHERE inn = %s", (inn,))
-                row = cur.fetchone()
-                return row[0] if row else None
-        except Exception as e:
-            print(f"Ошибка при поиске контрагента по ИНН: {e}")
-            return None
+    def get_counterparty_id_by_inn(self, inn) -> int | None:
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT id_counterparty FROM counterparty WHERE inn=%s", (inn,))
+            row = cur.fetchone()
+        return row[0] if row else None
 
     def get_counterparty_id_by_name(self, name):
         """Возвращает ID контрагента по имени (если найден)"""
@@ -579,61 +559,39 @@ class Database:
             self.conn.rollback()
             return None
 
-    def add_counterparty(self, name, inn=None):
-        try:
-            with self.conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO counterparty (name_counterparty, inn)
-                    VALUES (%s, %s)
-                    ON CONFLICT (inn) DO NOTHING
+    def add_counterparty(self, name: str, inn: str) -> int:
+        with self.conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO counterparty (name_counterparty, inn)
+                VALUES (%s, %s) ON CONFLICT (inn) DO
+                UPDATE
+                    SET name_counterparty = EXCLUDED.name_counterparty
                     RETURNING id_counterparty
-                """, (name, inn))
-                row = cur.fetchone()
-                if row:
-                    self.conn.commit()
-                    return row[0]
-                else:
-                    cur.execute("SELECT id_counterparty FROM counterparty WHERE inn = %s", (inn,))
-                    existing = cur.fetchone()
-                    return existing[0] if existing else None
-        except Exception as e:
-            print(f"Ошибка при добавлении контрагента: {e}")
-            return None
+                """,
+                (name, inn),
+            )
+            cid = cur.fetchone()[0]
+        self.conn.commit()
+        return cid
 
-    def update_counterparty(self, counterparty_id, name, inn):
-        """Обновляет контрагента по ID"""
-        try:
-            with self.conn.cursor() as cur:
-                cur.execute("""
-                            UPDATE counterparty
-                            SET name_counterparty = %s,
-                                inn               = %s
-                            WHERE id_counterparty = %s
-                            """, (name, inn, counterparty_id))
-            self.conn.commit()
-            print(f"✅ Контрагент {counterparty_id} обновлён: {name} ({inn})")
-            return True
-        except Exception as e:
-            print(f"[Ошибка] update_counterparty: {e}")
-            self.conn.rollback()
-            return False
+    def update_counterparty(self, counterparty_id: int, name: str, inn: str) -> int:
+        with self.conn.cursor() as cur:
+            cur.execute(
+                "UPDATE counterparty SET name_counterparty=%s, inn=%s WHERE id_counterparty=%s",
+                (name, inn, counterparty_id),
+            )
+        self.conn.commit()
+        return counterparty_id
 
-    def update_object(self, object_id, name, address):
-        """Обновляет объект с заданным ID"""
-        try:
-            with self.conn.cursor() as cur:
-                cur.execute("""
-                            UPDATE object
-                            SET name    = %s,
-                                address = %s
-                            WHERE id_object = %s
-                            """, (name, address, object_id))
-                self.conn.commit()
-                return True
-        except Exception as e:
-            print(f"[Ошибка] update_object: {e}")
-            self.conn.rollback()
-            return False
+    def update_object(self, object_id: int, name: str, address: str) -> int:
+        with self.conn.cursor() as cur:
+            cur.execute(
+                "UPDATE object SET name_object=%s, address=%s WHERE id_object=%s",
+                (name, address, object_id),
+            )
+        self.conn.commit()
+        return object_id
 
     # ПОИСК ДОГОВОРОВ
 
@@ -1349,6 +1307,7 @@ class Database:
             print(f"Ошибка удаления записи {record_id} из {table_name}: {e}")
             return False
     # ---------- ЗАКРЫТИЕ ----------
+
     def close(self):
         """Закрывает соединение с базой данных"""
         if self.conn:

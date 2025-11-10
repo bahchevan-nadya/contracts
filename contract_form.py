@@ -325,8 +325,6 @@ class ContractForm(QDialog):
     def save_contract(self):
         """Сохраняет или обновляет договор и все связанные объекты"""
         try:
-            print(f"[DEBUG] save_contract(): self.contract_id = {self.contract_id}")
-
             # --- Сбор данных ---
             number_contract = self.txt_number.text().strip()
             counterparty_name = self.txt_counterparty.text().strip()
@@ -375,13 +373,23 @@ class ContractForm(QDialog):
 
             # --- Объект ---
             if getattr(self, "is_edit_mode", False):
-                # При редактировании можно обновить объект
-                object_id = self.contract.get("object_id")
-                self.db.update_object(object_id, object_name, address)
+                object_id = (self.contract or {}).get("object_id")
+                if object_id:
+                    object_id = self.db.update_object(object_id, object_name, address)  # верни id
+                else:
+                    # если в контракте нет object_id — создаём новый объект
+                    object_id = self.db.add_object(object_name, address)
             else:
                 object_id = self.db.add_object(object_name, address)
 
             # --- Связка объект <-> контрагент ---
+            if not object_id:
+                QMessageBox.warning(self, "Ошибка", "Не удалось получить ID объекта (object_id is None).")
+                return
+            if not counterparty_id:
+                QMessageBox.warning(self, "Ошибка", "Не удалось получить ID контрагента (counterparty_id is None).")
+                return
+
             object_counterparty_id = self.db.link_object_counterparty(object_id, counterparty_id)
 
             # --- Добавление или обновление договора ---
@@ -546,7 +554,6 @@ class ContractForm(QDialog):
             amount = data.get("amount")
 
             if not term_warrantyretention or amount is None:
-                print(f"⚠️ Пропущено гарантийное удержание без срока или суммы: {data}")
                 continue
 
             existing = self.db.get_retention_by_contract(self.contract_id)
