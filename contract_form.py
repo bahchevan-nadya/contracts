@@ -210,7 +210,7 @@ class ContractForm(QDialog):
             import traceback
             traceback.print_exc()
 
-    def link_guarent_contract(self, contract_id, guarent_id)
+    def link_guarent_contract(self, contract_id, guarent_id):
         try:
             with self.conn.cursor() as cur:
                 cur.execute("""
