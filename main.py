@@ -1,5 +1,3 @@
-# main.py — главное окно приложения MODTFIL
-# Содержит верхнюю панель с кнопками и таблицу с договорами
 import os
 import sys
 import webbrowser
@@ -15,20 +13,18 @@ from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont
 
 from contract_view import ContractViewDialog
-from db import Database  # подключаем базу данных
-from contract_form import ContractForm  # окно создания/редактирования договоров
-from notifications import NotificationsWindow  # окно уведомлений
+from db import Database
+from contract_form import ContractForm
+from notifications import NotificationsWindow
 
 import traceback
 from PyQt6.QtWidgets import QMessageBox
 
 
 class MainWindow(QMainWindow):
-    """Главное окно после авторизации"""
     def __init__(self, user_id):
         super().__init__()
 
-        # --- Настройки окна ---
         self.txt_object = None
         self.txt_counterparty = None
         self.txt_number = None
@@ -44,39 +40,29 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1100, 700)
         self.showMaximized()
 
-        # Подключаем стили
         self.setStyleSheet(open("modtfil_app/styles.qss", "r", encoding="utf-8").read())
 
-        # --- Подключаем базу данных ---
         self.db = Database()
 
-        # --- Текущий пользователь ---
         self.user_id = user_id
 
-        # --- Основной layout ---
         main_widget = QWidget()
         main_layout = QVBoxLayout()
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
 
-        # Верхняя панель с кнопками
         self.create_top_panel()
 
-        # Таблица с договорами
         self.create_contract_table()
 
-        # Фильтры поиска
         self.create_search_filters()
 
-        # Добавляем элементы в основной макет
         main_layout.addWidget(self.top_panel)
         main_layout.addWidget(self.search_filters)
         main_layout.addWidget(self.contract_table)
 
-        # Скрываем фильтры по умолчанию
         self.search_filters.hide()
-        
-    # Создает верхнюю панель с кнопками
+
     def create_top_panel(self):
         self.top_panel = QWidget()
         top_layout = QHBoxLayout()
@@ -181,7 +167,7 @@ class MainWindow(QMainWindow):
 
         if reply == QMessageBox.StandardButton.Yes:
             self.db.delete_contract(contract_id)
-            self.load_contracts()  # Обновляем таблицу после удаления
+            self.load_contracts()
     
     # Создает виджет с фильтрами поиска
     def create_search_filters(self):
@@ -189,7 +175,6 @@ class MainWindow(QMainWindow):
         search_layout = QVBoxLayout()
         self.search_filters.setLayout(search_layout)
 
-        # Поля фильтров
         self.txt_number = QLineEdit()
         self.txt_number.setPlaceholderText("Номер договора")
 
@@ -205,7 +190,7 @@ class MainWindow(QMainWindow):
         self.txt_object = QLineEdit()
         self.txt_object.setPlaceholderText("Объект")
 
-        # --- Автоподсказки для контрагентов ---
+        # Автоподсказки для контрагентов
         try:
             with self.db.conn.cursor() as cur:
                 cur.execute("SELECT name_counterparty FROM counterparty")
@@ -216,7 +201,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"[Ошибка автоподстановки контрагентов]: {e}")
 
-        # --- Автоподсказки для объектов ---
+        # Автоподсказки для объектов
         try:
             with self.db.conn.cursor() as cur:
                 cur.execute("SELECT name_object FROM object")
@@ -254,7 +239,7 @@ class MainWindow(QMainWindow):
         self.txt_counterparty.clear()
         self.txt_object.clear()
         self.contract_table.setRowCount(0)
-        self.load_contracts()  # Обновляем таблицу после очистки фильтров
+        self.load_contracts()
     
     # Поиск договоров по фильтрам
     def on_search(self):
@@ -287,7 +272,6 @@ class MainWindow(QMainWindow):
 
     # просмотр карточки договора
     def view_contract(self):
-        """Открывает диалог просмотра выбранного договора"""
         selected_items = self.contract_table.selectedItems()
         if not selected_items:
             QMessageBox.warning(self, "Ошибка", "Выберите договор в таблице.")

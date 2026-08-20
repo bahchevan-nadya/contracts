@@ -10,7 +10,6 @@ from main import MainWindow
 
 
 class IntermediateWindow(QWidget):
-    """Промежуточное окно для администраторов"""
 
     def __init__(self, db, user_id):
         super().__init__()
@@ -46,15 +45,12 @@ class IntermediateWindow(QWidget):
         self.setLayout(layout)
 
     def open_admin_panel(self):
-        """Открытие панели администратора"""
         self.admin_panel = AdminPanel(self.db)
         self.admin_panel.show()
-        # self.close()
 
     def open_main_window(self):
         self.ManageTableWindow = ManageTableWindow(self.db)
         self.ManageTableWindow.show()
-        # self.close()
 
     def open_app(self):
         self.app = MainWindow(self.user_id)

@@ -1,4 +1,3 @@
-# contract_form.py — форма создания и редактирования договоров
 import os
 import webbrowser
 
@@ -21,7 +20,6 @@ class ContractForm(QDialog):
         super().__init__(parent)
         self.db = db
         self.current_user_id = current_user_id
-        # Подключаем стили
         self.setStyleSheet(open("modtfil_app/styles.qss", "r", encoding="utf-8").read())
 
         self.setWindowTitle("Карточка договора")
@@ -31,32 +29,26 @@ class ContractForm(QDialog):
         self.contract_id = None
         self.file_path = None
 
-        # Основной layout для формы
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
 
-        # Создаем контейнер и layout для содержимого
         self.content_widget = QWidget()
         self.content_layout = QVBoxLayout()
         self.content_widget.setLayout(self.content_layout)
 
-        # Оборачиваем содержимое в QScrollArea
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.content_widget)
 
-        # Добавляем scrollArea в основной layout
         self.main_layout.addWidget(self.scroll_area)
 
-        # --- Заголовок ---
+        # Заголовок
         title = QLabel("Карточка договора")
         title.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.content_layout.addWidget(title)
 
-        # ===============================
         # Поля ввода
-        # ===============================
         self.cmb_type = QComboBox()
         self.cmb_type.setEditable(True)
         self.cmb_type.lineEdit().setMaxLength(50)
@@ -89,7 +81,7 @@ class ContractForm(QDialog):
         self.date_term.setEnabled(False)
         self.chk_term.stateChanged.connect(lambda state: self.date_term.setEnabled(bool(state)))
 
-        # --- Банковская гарантия ---
+        # Банковская гарантия
         self.chk_guarent = QCheckBox("Добавить банковские гарантии")
         self.btn_add_guarent = QPushButton("➕ Добавить гарантию")
         self.list_guarents = QListWidget()
@@ -98,7 +90,7 @@ class ContractForm(QDialog):
         self.chk_guarent.stateChanged.connect(self.toggle_guarents)
         self.btn_add_guarent.clicked.connect(self.add_guarent_entry)
 
-        # --- Гарантийное удержание ---
+        # Гарантийное удержание
         self.chk_retention = QCheckBox("Добавить гарантийные удержания")
         self.btn_add_retention = QPushButton("➕ Добавить удержание")
         self.list_retentions = QListWidget()
@@ -107,7 +99,7 @@ class ContractForm(QDialog):
         self.chk_retention.stateChanged.connect(self.toggle_retentions)
         self.btn_add_retention.clicked.connect(self.add_retention_entry)
 
-        # --- Дополнительное соглашение ---
+        # Дополнительное соглашение
         self.chk_addagreement = QCheckBox("Есть дополнительное соглашение")
         self.chk_addagreement.stateChanged.connect(self.toggle_add_agreement_section)
 
@@ -118,15 +110,12 @@ class ContractForm(QDialog):
         self.list_agreement = QListWidget()
         self.list_agreement.setVisible(False)
 
-        # --- Файл договора ---
+        # Файл договора
         self.btn_file = QPushButton("📎 Прикрепить файл договора (PDF)")
         self.lbl_file = QLabel("Файл не выбран")
         self.btn_file.clicked.connect(self.attach_file)
 
-        # ===============================
         # Компоновка
-        # ===============================
-
         for lbl, field in [
             ("Тип договора:", self.cmb_type),
             ("Номер договора:", self.txt_number),
@@ -161,7 +150,7 @@ class ContractForm(QDialog):
         self.content_layout.addWidget(self.btn_add_agreement)
         self.content_layout.addWidget(self.list_agreement)
 
-        # --- Кнопки управления ---
+        # Кнопки управления
         btns = QHBoxLayout()
         self.btn_save = QPushButton("💾 Сохранить договор")
         self.btn_clear = QPushButton("🧹 Очистить форму")
@@ -174,9 +163,9 @@ class ContractForm(QDialog):
         self.btn_save.clicked.connect(self.save_contract)
         self.btn_clear.clicked.connect(self.clear_form)
 
-        # Загружаем данные договора, если он передан
         if self.contract:
             self.load_contract_data(contract)
+
     # Методы интерфейса
     def load_types(self):
         self.cmb_type.clear()
@@ -199,14 +188,12 @@ class ContractForm(QDialog):
         self.list_agreement.setVisible(visible)
 
     def add_guarent_entry(self):
-        """Добавляет банковскую гарантию через диалог"""
         try:
             dialog = BankGuaranteeDialog(self)  # Передаем self как parent
 
             if dialog.exec():
                 data = dialog.get_data()
 
-                # Валидация данных
                 if not data["number_guarent"]:
                     QMessageBox.warning(self, "Ошибка", "Номер гарантии не может быть пустым")
                     return
@@ -223,11 +210,9 @@ class ContractForm(QDialog):
             import traceback
             traceback.print_exc()
 
-    def link_guarent_contract(self, contract_id, guarent_id):
-        """Связывает гарантию с договором"""
+    def link_guarent_contract(self, contract_id, guarent_id)
         try:
             with self.conn.cursor() as cur:
-                # Простая вставка без ON CONFLICT
                 cur.execute("""
                             INSERT INTO guarent_contract (contract_id, guarent_id)
                             VALUES (%s, %s) RETURNING id_guarent_contract
@@ -244,7 +229,6 @@ class ContractForm(QDialog):
                     return False
 
         except psycopg2.IntegrityError:
-            # Если связь уже существует (нарушение уникальности)
             print(f"ℹ️ Связь договора {contract_id} с гарантией {guarent_id} уже существует")
             self.conn.rollback()
             return True
@@ -263,23 +247,19 @@ class ContractForm(QDialog):
             self.list_retentions.addItem(item)
 
     def add_agreement_entry(self):
-        """Открывает диалог для добавления дополнительного соглашения"""
         try:
             dialog = Add_agreement_dialog(self)
             if dialog.exec():
                 data = dialog.get_data()
 
-                # Проверяем, чтобы поля не были пустыми
                 if not data["number_agreement"]:
                     QMessageBox.warning(self, "Ошибка", "Заполните номер дополнительного соглашения.")
                     return
 
-                # Проверяем, что файл выбран
                 if not data["file_agreement"]:
                     QMessageBox.warning(self, "Ошибка", "Пожалуйста, прикрепите PDF-файл доп. соглашения.")
                     return
 
-                # Отображаем в списке
                 display = f"{data['number_agreement']} — {data['start_date']} ({data['description']})"
                 item = QListWidgetItem(display)
                 item.setData(Qt.ItemDataRole.UserRole, data)
@@ -289,7 +269,6 @@ class ContractForm(QDialog):
             QMessageBox.critical(self, "Ошибка", f"Ошибка при открытии диалога: {e}")
 
     def attach_file(self):
-        """Прикрепление файла основного договора через проводник"""
         path, _ = QFileDialog.getOpenFileName(
             self,
             "Выберите PDF файл договора",
@@ -317,14 +296,10 @@ class ContractForm(QDialog):
         self.file_path = None
         self.contract_id = None
 
-    # ----------------------------------------------------------------------
     # Работа с БД
-    # ----------------------------------------------------------------------
 
     def save_contract(self):
-        """Сохраняет или обновляет договор и все связанные объекты"""
         try:
-            # --- Сбор данных ---
             number_contract = self.txt_number.text().strip()
             counterparty_name = self.txt_counterparty.text().strip()
             inn = self.txt_inn.text().strip()
@@ -334,7 +309,6 @@ class ContractForm(QDialog):
             start_date = self.date_start.date().toPyDate()
             term_contract = self.date_term.date().toPyDate() if self.chk_term.isChecked() else None
 
-            # Проверяем, что файл прикреплен
             if not self.file_path:
                 QMessageBox.warning(self, "Ошибка", "Пожалуйста, прикрепите PDF-файл договора!")
                 return
@@ -345,11 +319,10 @@ class ContractForm(QDialog):
                 QMessageBox.warning(self, "Ошибка", "Заполните обязательные поля: Номер, Контрагент, ИНН!")
                 return
 
-            # --- Контрагент ---
+            # Контрагент
             counterparty_id = self.db.get_counterparty_id_by_inn(inn)
 
             if getattr(self, "is_edit_mode", False):
-                # Пытаемся по ИНН → по имени → из текущего контракта
                 counterparty_id = (
                         counterparty_id
                         or self.db.get_counterparty_id_by_name(counterparty_name)
@@ -359,30 +332,27 @@ class ContractForm(QDialog):
                 if counterparty_id:
                     self.db.update_counterparty(counterparty_id, counterparty_name, inn)
                 else:
-                    # если вообще ничего не нашли — создаём, чтобы гарантировать ID
                     counterparty_id = self.db.add_counterparty(counterparty_name, inn)
             else:
                 if not counterparty_id:
                     counterparty_id = self.db.add_counterparty(counterparty_name, inn)
 
-            # --- Тип договора ---
+            # Тип договора
             type_id = self.db.get_type_id_by_name(type_name)
             if not type_id:
                 self.db.add_type(type_name)
                 type_id = self.db.get_type_id_by_name(type_name)
 
-            # --- Объект ---
+            # Объект
             if getattr(self, "is_edit_mode", False):
                 object_id = (self.contract or {}).get("object_id")
                 if object_id:
-                    object_id = self.db.update_object(object_id, object_name, address)  # верни id
+                    object_id = self.db.update_object(object_id, object_name, address)
                 else:
-                    # если в контракте нет object_id — создаём новый объект
                     object_id = self.db.add_object(object_name, address)
             else:
                 object_id = self.db.add_object(object_name, address)
 
-            # --- Связка объект <-> контрагент ---
             if not object_id:
                 QMessageBox.warning(self, "Ошибка", "Не удалось получить ID объекта (object_id is None).")
                 return
@@ -392,7 +362,7 @@ class ContractForm(QDialog):
 
             object_counterparty_id = self.db.link_object_counterparty(object_id, counterparty_id)
 
-            # --- Добавление или обновление договора ---
+            # Добавление или обновление договора
             contract_data = {
                 "number_contract": number_contract,
                 "start_date": start_date,
@@ -422,9 +392,9 @@ class ContractForm(QDialog):
                 )
                 self.contract_id = contract_id
 
-            # --- Доп.соглашения, гарантии, удержания ---
+            # Доп.соглашения, гарантии, удержания
             self.save_addagreements()
-            self.save_guarents()      # уже обновленная версия, предотвращает дубли
+            self.save_guarents()
             self.save_retentions()
 
             QMessageBox.information(self, "Успешно", "✅ Договор и все связанные данные сохранены!")
@@ -434,7 +404,6 @@ class ContractForm(QDialog):
              QMessageBox.critical(self, "Ошибка при сохранении", f"❌ {e}")
 
     def save_addagreements(self):
-        """Сохраняет или обновляет доп. соглашения"""
         if not self.chk_addagreement.isChecked() or self.list_agreement.count() == 0:
             return
 
@@ -445,13 +414,12 @@ class ContractForm(QDialog):
             number_agreement = data.get("number_agreement") or data.get("number")
             start_date_ag = data.get("start_date")
             description = data.get("description", "")
-            file_path_ag = data.get("file_agreement")  # Берем путь из данных диалога
+            file_path_ag = data.get("file_agreement")
 
             if not number_agreement:
                 print("⚠️ Пропущено доп. соглашение без номера")
                 continue
 
-            # Проверяем, что файл прикреплен
             if not file_path_ag:
                 print(f"⚠️ Пропущено доп. соглашение {number_agreement} без файла")
                 continue
@@ -478,7 +446,6 @@ class ContractForm(QDialog):
                     print(f"✅ Добавлено доп. соглашение: {number_agreement}")
 
     def save_guarents(self):
-        """Сохраняет или обновляет банковские гарантии"""
         if not self.chk_guarent.isChecked() or self.list_guarents.count() == 0:
             print("ℹ️ Нет гарантий для сохранения")
             return
@@ -505,7 +472,6 @@ class ContractForm(QDialog):
                     print(f"❌ Не удалось получить/создать тип гарантии: {type_guarent}")
                     continue
 
-                # Проверяем существующую гарантию
                 existing = self.db.get_guarent_by_number(number_guarent)
 
                 if existing:
@@ -544,7 +510,6 @@ class ContractForm(QDialog):
         print(f"📊 Итог по гарантиям: {successful_saves}/{total_guarents} успешно сохранено")
 
     def save_retentions(self):
-        """Сохраняет или обновляет гарантийные удержания"""
         if not self.chk_retention.isChecked() or self.list_retentions.count() == 0:
             return
 
@@ -578,14 +543,12 @@ class ContractForm(QDialog):
 
     # редактирование
     def load_contract_data(self, contract_data):
-        """Загружает данные договора и связанных таблиц в форму"""
         try:
-            # --- Сохраняем ссылку на текущий договор ---
             self.contract = contract_data
             self.contract_id = contract_data.get("id_contract")
 
             self.is_edit_mode = True
-            # --- Основные поля договора ---
+            # Основные поля договора
             self.txt_number.setText(str(contract_data.get("number_contract", "")))
             self.cmb_type.setCurrentText(contract_data.get("type_name", ""))
             self.txt_counterparty.setText(contract_data.get("counterparty_name", ""))
@@ -593,7 +556,7 @@ class ContractForm(QDialog):
             self.txt_object.setText(contract_data.get("object_name", ""))
             self.txt_address.setText(contract_data.get("address", ""))
 
-            # --- Даты ---
+            # Даты
             start_date = contract_data.get("start_date")
             term_date = contract_data.get("term_contract")
 
@@ -606,7 +569,7 @@ class ContractForm(QDialog):
                 self.chk_term.setChecked(False)
                 self.date_term.setEnabled(False)
 
-            # --- Файл договора ---
+            # Файл договора
             file_contract = contract_data.get("file_contract")
             if file_contract:
                 self.lbl_file.setText(os.path.basename(file_contract))
@@ -615,7 +578,7 @@ class ContractForm(QDialog):
                 self.lbl_file.setText("Файл не выбран")
                 self.file_path = None
 
-            # --- Банковские гарантии ---
+            # Банковские гарантии
             self.list_guarents.clear()
             bank_guarents = contract_data.get("bank_guarent", [])
             if bank_guarents:
@@ -631,7 +594,7 @@ class ContractForm(QDialog):
                     item.setData(Qt.ItemDataRole.UserRole, bg)
                     self.list_guarents.addItem(item)
 
-            # --- Гарантийные удержания ---
+            # Гарантийные удержания
             self.list_retentions.clear()
             warrantyret = contract_data.get("warrantyretention", [])
             if warrantyret:
@@ -647,7 +610,7 @@ class ContractForm(QDialog):
                     item.setData(Qt.ItemDataRole.UserRole, w)
                     self.list_retentions.addItem(item)
 
-            # --- Дополнительные соглашения ---
+            # Дополнительные соглашения
             self.list_agreement.clear()
             addagreements = contract_data.get("addagreements", [])
             if addagreements:
@@ -669,5 +632,5 @@ class ContractForm(QDialog):
             raise
 
     def exec(self):
-        # Запуск модального диалога
+
         return super().exec()

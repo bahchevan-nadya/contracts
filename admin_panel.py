@@ -1,4 +1,3 @@
-# admin_panel.py — панель администратора для управления пользователями
 import re
 
 from PyQt6.QtWidgets import (
@@ -10,25 +9,21 @@ from PyQt6.QtGui import QFont, QRegularExpressionValidator
 
 
 class AdminPanel(QWidget):
-    """Окно администратора для управления пользователями"""
 
     def __init__(self, db):
-        super().__init__()  # инициализация базового класса QWidget
+        super().__init__()
 
-        self.db = db  # подключение к базе данных, передаётся из login.py
+        self.db = db
 
-        # Параметры окна
         self.setWindowTitle("Панель администратора — управление пользователями")
         self.resize(1000, 600)
         self.setMinimumSize(800, 500)
         self.showMaximized()
 
-        # Подключаем файл стилей QSS
         self.setStyleSheet(open("modtfil_app/styles.qss", "r", encoding="utf-8").read())
 
-        # Заголовок
         self.lbl_title = QLabel("Управление пользователями")
-        self.lbl_title.setObjectName("TitleLabel")  # применяется стиль из QSS
+        self.lbl_title.setObjectName("TitleLabel")
         self.lbl_title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
         self.lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -37,9 +32,8 @@ class AdminPanel(QWidget):
         self.table.setColumnCount(7)
         self.table.setHorizontalHeaderLabels(["ID", "Фамилия", "Имя", "Отчество", "Телефон", "Логин", "Должность"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.load_users()  # загружаем данные из БД
+        self.load_users()
 
-        # Поля для добавления нового пользователя
         self.input_last_name = QLineEdit()
         self.input_last_name.setPlaceholderText("Фамилия")
 
@@ -52,7 +46,6 @@ class AdminPanel(QWidget):
         self.input_phone = QLineEdit()
         self.input_phone.setPlaceholderText("Телефон")
 
-        # Устанавливаем маску для телефона
         self.input_phone.setInputMask("+7(000)000-00-00;_")
 
         self.input_login = QLineEdit()
@@ -65,7 +58,7 @@ class AdminPanel(QWidget):
         self.input_role = QLineEdit()
         self.input_role.setPlaceholderText("Должность")
 
-        # --- Кнопки ---
+        # Кнопки
         self.btn_add = QPushButton("Добавить пользователя")
         self.btn_add.clicked.connect(self.add_user)  # обработчик кнопки добавления
 
@@ -75,7 +68,6 @@ class AdminPanel(QWidget):
         self.btn_close = QPushButton("Закрыть")
         self.btn_close.clicked.connect(self.close)
 
-        # --- Компоновка (layout) ---
         form_layout = QHBoxLayout()
         form_layout.addWidget(self.input_last_name)
         form_layout.addWidget(self.input_name)
@@ -100,9 +92,7 @@ class AdminPanel(QWidget):
         self.setLayout(main_layout)
 
     # Загрузка всех пользователей
-
     def load_users(self):
-        """Загружает список пользователей из базы данных"""
         users = self.db.get_all_users()  # получаем список из db.py
         self.table.setRowCount(len(users))
 
@@ -116,9 +106,7 @@ class AdminPanel(QWidget):
             self.table.setItem(row, 6, QTableWidgetItem(user["role"]))
 
     # Добавление пользователя
-
     def add_user(self):
-        """Добавляет нового пользователя в базу данных"""
         last_name = self.input_last_name.text().strip()
         name_user = self.input_name.text().strip()
         partronymic = self.input_partronymic.text().strip()
@@ -127,35 +115,29 @@ class AdminPanel(QWidget):
         password = self.input_password.text().strip()
         role_name = self.input_role.text().strip()
 
-        # Проверяет на пустые поля
         if not all([last_name, name_user, partronymic, phone, login, password, role_name]):
             QMessageBox.warning(self, "Ошибка", "Заполните все поля!")
             return
 
-        # Проверяет на текстовые поля
         if not all(s.isalpha() for s in [last_name, name_user, partronymic, role_name]):
             QMessageBox.warning(self, "Ошибка", "ФИО и должность должны содержать только буквы!")
             return
 
-        #Проверяет номер телефона
         digits_only = re.sub(r'\D', '', phone)  # убираем всё, кроме цифр
         if not digits_only.isdigit():
             QMessageBox.warning(self, "Ошибка", "Телефон должен содержать только цифры!")
             return
 
-        # Проверка формата телефона +7(___)___-__-__
         pattern = r'^\+7\(\d{3}\)\d{3}-\d{2}-\d{2}$'
         if not re.fullmatch(pattern, phone):
             QMessageBox.warning(self, "Ошибка", "Телефон должен быть в формате +7(XXX)XXX-XX-XX")
             return
 
-        # Проверка существования логина
         existing = self.db.check_user(login, password=None)
         if existing:
             QMessageBox.warning(self, "Ошибка", "Пользователь с таким логином уже существует.")
             return
 
-        # Получение id роли, если роли нет — добавляем
         role_id = self.db.get_type_id_by_name(role_name)
         if role_id is None:
             role_id = self.db.add_role(role_name)
@@ -178,10 +160,8 @@ class AdminPanel(QWidget):
             QMessageBox.critical(self, "Ошибка", "Не удалось добавить пользователя.")
 
     # Удаление пользователя
-
     def delete_user(self):
-        """Удаляет выбранного пользователя"""
-        selected = self.table.currentRow()  # индекс выбранной строки
+        selected = self.table.currentRow()
         if selected == -1:
             QMessageBox.warning(self, "Ошибка", "Выберите пользователя для удаления.")
             return
@@ -193,7 +173,6 @@ class AdminPanel(QWidget):
             QMessageBox.warning(self, "Ошибка", "Нельзя удалить администратора!")
             return
 
-        # Подтверждение удаления
         reply = QMessageBox.question(
             self,
             "Подтверждение",

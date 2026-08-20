@@ -1,18 +1,11 @@
-# -*- coding: utf-8 -*-
-# db.py — модуль для работы с PostgreSQL
-# Подключение, авторизация пользователей, базовые операции
-
 import psycopg2
 from psycopg2.extras import RealDictRow, RealDictCursor
 from contextlib import contextmanager
 import os
 
-
 class Database:
-    """Класс для работы с базой данных PostgreSQL"""
 
     def __init__(self):
-        """Инициализация подключения к БД"""
         try:
             self.conn = psycopg2.connect(
                 dbname = "modtfil",
@@ -26,32 +19,20 @@ class Database:
             print(f"Ошибка подключения к БД: {e}")
 
     def safe_id(self, value, key: str = 'id') -> int | None:
-        """
-        Возвращает int ID из разных форматов:
-        - int -> int
-        - str (цифры) -> int
-        - dict / RealDictRow -> ищем по ключам key, 'id', 'id_user', ...
-        - (x,) / [x] -> рекурсивно
-        - объект с атрибутом .id -> int(.id)
-        Иначе -> None
-        """
+
         if value is None:
             return None
 
-        # 1) уже int
         if isinstance(value, int):
             return value
 
-        # 2) str с цифрами
         if isinstance(value, str):
             s = value.strip()
             return int(s) if s.isdigit() else None
 
-        # 3) RealDictRow -> dict
         if isinstance(value, RealDictRow):
             value = dict(value)
 
-        # 4) dict c возможными ключами
         if isinstance(value, dict):
             possible_keys = [
                 key, 'id',
@@ -65,29 +46,24 @@ class Database:
                         return int(value[k])
                     except Exception:
                         pass
-            # не нашли
             print(f"⚠️ Не удалось найти ID в словаре: {value}")
             return None
 
-        # 5) одиночные кортеж/список вида (123,) или [123]
         if isinstance(value, (tuple, list)) and len(value) == 1:
             return self.safe_id(value[0], key=key)
 
-        # 6) объект с атрибутом .id
         if hasattr(value, 'id'):
             try:
                 return int(getattr(value, 'id'))
             except Exception:
                 pass
 
-        # 7) всё прочее — логируем тип для отладки
         print(f"⚠️ Неизвестный тип для safe_id: {value} ({type(value)})")
         return None
 
-    # ---------- ПОЛЬЗОВАТЕЛИ ----------
+    # ПОЛЬЗОВАТЕЛИ
 
     def check_user(self, login, password):
-        """Проверяет существование пользователя в базе"""
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
@@ -109,7 +85,6 @@ class Database:
             return []
 
     def add_role(self, role_name):
-        """Добавляет новую роль и возвращает её id"""
         try:
             with self.conn.cursor() as cur:
                 # Проверяем, есть ли роль уже
@@ -137,7 +112,6 @@ class Database:
             return False
 
     def get_all_users(self):
-        """Возвращает список всех пользователей с ролью"""
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
@@ -158,7 +132,6 @@ class Database:
             return []
 
     def add_user(self, last_name, name_user, partronymic, phone, login, password, role_id=None):
-        """Добавляет нового пользователя с ролью"""
         try:
             with self.conn.cursor() as cur:
                 cur.execute("""
@@ -171,7 +144,6 @@ class Database:
             return False
 
     def delete_user(self, user_id):
-        """Удаляет пользователя по ID"""
         try:
             with self.conn.cursor() as cur:
                 cur.execute("DELETE FROM users WHERE id_user = %s",
@@ -196,7 +168,7 @@ class Database:
             print(f"Ошибка при проверке пользователя: {e}")
             return None
 
-    # ---------- ТИПЫ ДОГОВОРОВ ----------
+    # ТИПЫ ДОГОВОРОВ
     def get_types(self):
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -227,7 +199,8 @@ class Database:
         except Exception as e:
             print(f"Ошибка при получении ID типа: {e}")
             return None
-    # ---------- ДОГОВОРЫ ----------
+
+    # ДОГОВОРЫ
     def add_object(self, name: str, address: str) -> int:
         with self.conn.cursor() as cur:
             cur.execute(
@@ -271,7 +244,6 @@ class Database:
     def add_contract(self, number_contract, start_date, term_contract,
                      object_counterparty_id, type_id, user_id, file_contract=None):
         try:
-            # Безопасно извлекаем ID-шники
             object_counterparty_id = self.safe_id(object_counterparty_id, "id")  # не "id_obgect_counterparty"
             type_id = self.safe_id(type_id, "id")
             user_id = self.safe_id(user_id, "id")
@@ -319,7 +291,7 @@ class Database:
                 if not contract:
                     return None
 
-                # --- Дополнительные соглашения ---
+                # Дополнительные соглашения
                 cur.execute("""
                             SELECT id_addagreement,
                                    number_agreement AS number,
@@ -332,7 +304,7 @@ class Database:
                             """, (contract_id,))
                 contract["addagreements"] = cur.fetchall()
 
-                # --- Банковские гарантии ---
+                # Банковские гарантии
                 cur.execute("""
                             SELECT bg.id_guarent,
                                    bg.number_guarent    AS number,
@@ -347,7 +319,7 @@ class Database:
                             """, (contract_id,))
                 contract["bank_guarent"] = cur.fetchall()
 
-                # --- Гарантийные удержания (если есть таблица retention) ---
+                # Гарантийные удержания
                 try:
                     cur.execute("""
                                 SELECT id_warrantyretention,
@@ -360,7 +332,6 @@ class Database:
                     contract["warrantyretention"] = cur.fetchall()
                     return contract
                 except Exception:
-                    # если таблицы retention нет — просто пропускаем
                     contract["warrantyretention"] = []
 
                 return contract
@@ -370,7 +341,6 @@ class Database:
             return None
 
     def get_contract_by_number(self, number_contract):
-        """Проверяет, существует ли договор с таким номером"""
         try:
             with self.conn.cursor() as cur:
                 cur.execute("SELECT id_contract FROM contract WHERE number_contract = %s", (number_contract,))
@@ -398,13 +368,8 @@ class Database:
             return []
 
     def delete_contract(self, contract_id):
-        """
-        Удаляет договор и все связанные с ним записи (доп. соглашения, гарантии, удержания и т.д.)
-        благодаря каскадным связям в БД.
-        """
         try:
             with self.conn.cursor() as cursor:
-                # Удаляем договор — все связанные записи удалятся каскадно
                 cursor.execute("DELETE FROM contract WHERE id_contract = %s;", (contract_id,))
                 self.conn.commit()
                 print(f"[INFO] Договор с id={contract_id} и все связанные записи успешно удалены.")
@@ -415,9 +380,6 @@ class Database:
             return False
 
     def _convert_to_simple_types(self, data):
-        """
-        Преобразует только сложные объекты, оставляя даты как есть
-        """
         if data is None:
             return None
 
@@ -427,17 +389,15 @@ class Database:
             if value is None:
                 result[key] = None
             elif isinstance(value, RealDictRow):
-                # Для RealDictRow извлекаем только ID если это user_id
                 if key == 'user_id' and 'id_user' in value:
                     result[key] = value['id_user']
                 else:
                     result[key] = dict(value)
-            elif hasattr(value, '__dict__'):  # Для других объектов
+            elif hasattr(value, '__dict__'):
                 result[key] = dict(value)
-            elif hasattr(value, '_asdict'):  # Для namedtuple
+            elif hasattr(value, '_asdict'):
                 result[key] = value._asdict()
             else:
-                # Оставляем даты и простые типы как есть
                 result[key] = value
 
         return result
@@ -453,7 +413,6 @@ class Database:
             if not contract_id:
                 raise ValueError("ID контракта обязателен для обновления")
 
-            # Извлекаем user_id из объекта, если он передан как словарь
             user_id = contract_data.get("user_id")
             if isinstance(user_id, dict) and 'id_user' in user_id:
                 user_id = user_id['id_user']
@@ -462,7 +421,6 @@ class Database:
             else:
                 user_id = None
 
-            # Обрабатываем остальные ID
             type_id = self.safe_id(contract_data.get("type_id"), "id_type")
             object_counterparty_id = self.safe_id(contract_data.get("object_counterparty_id"), "id_obgect_counterparty")
 
@@ -479,8 +437,8 @@ class Database:
                             WHERE id_contract = %s
                             """, (
                                 contract_data.get("number_contract"),
-                                contract_data.get("start_date"),  # Теперь это строка в формате YYYY-MM-DD
-                                contract_data.get("term_contract"),  # Теперь это строка в формате YYYY-MM-DD
+                                contract_data.get("start_date"),
+                                contract_data.get("term_contract"),
                                 user_id,
                                 type_id,
                                 object_counterparty_id,
@@ -496,7 +454,7 @@ class Database:
             self.conn.rollback()
             return False
 
-    # ---------- КОНТРАГЕНТЫ ----------
+    # КОНТРАГЕНТЫ
     def get_counterparty_id_by_inn(self, inn) -> int | None:
         with self.conn.cursor() as cur:
             cur.execute("SELECT id_counterparty FROM counterparty WHERE inn=%s", (inn,))
@@ -504,7 +462,6 @@ class Database:
         return row[0] if row else None
 
     def get_counterparty_id_by_name(self, name):
-        """Возвращает ID контрагента по имени (если найден)"""
         try:
             with self.conn.cursor() as cur:
                 cur.execute("""
@@ -519,7 +476,6 @@ class Database:
             return None
 
     def get_object_id_by_address(self, address):
-        """Возвращает ID объекта по адресу (если найден)"""
         try:
             with self.conn.cursor() as cur:
                 cur.execute("""
@@ -534,7 +490,6 @@ class Database:
             return None
 
     def ensure_object_counterparty_link(self, counterparty_id, object_id):
-        """Возвращает существующую или создаёт новую связь объект–контрагент"""
         try:
             with self.conn.cursor() as cur:
                 cur.execute("""
@@ -596,7 +551,6 @@ class Database:
     # ПОИСК ДОГОВОРОВ
 
     def search_contract(self, number_contract=None, name_counterparty=None, name_type=None, name_object=None):
-        """Поиск договора по номеру, типу, контрагенту и объекту (без учета регистра)"""
         try:
             with self.conn.cursor() as cur:
                 query = """
@@ -650,10 +604,6 @@ class Database:
             return []
 
     def get_expiring_items(self, today, soon):
-        """
-        Возвращает список договоров, банковских гарантий и гарантийных удержаний,
-        срок действия которых истекает между today и soon.
-        """
         try:
             with self.conn.cursor() as cur:
                 cur.execute("""
@@ -696,10 +646,9 @@ class Database:
             print(f"Ошибка при получении уведомлений: {e}")
             return []
 
-    # ---------- ДОПОЛНИТЕЛЬНЫЕ СУЩНОСТИ ----------
+    # ДОПОЛНИТЕЛЬНЫЕ СУЩНОСТИ
 
     def add_bank_guarent(self, number_guarent, start_date, term_date, type_guarent_id):
-        """Добавляет банковскую гарантию"""
         try:
             with self.conn.cursor() as cur:
                 cur.execute("""
@@ -715,7 +664,6 @@ class Database:
             return None
 
     def link_guarent_contract(self, contract_id, guarent_id):
-        """Связывает гарантию с договором"""
         try:
             with self.conn.cursor() as cur:
                 # Простая вставка без ON CONFLICT
@@ -735,7 +683,6 @@ class Database:
                     return False
 
         except psycopg2.IntegrityError:
-            # Если связь уже существует (нарушение уникальности)
             print(f"ℹ️ Связь договора {contract_id} с гарантией {guarent_id} уже существует")
             self.conn.rollback()
             return True
@@ -745,7 +692,6 @@ class Database:
             return False
 
     def update_bank_guarent(self, guarent_id, number_guarent, start_date, term_date, type_guarent_id):
-        """Обновляет банковскую гарантию"""
         try:
             with self.conn.cursor() as cur:
                 cur.execute("""
@@ -764,10 +710,8 @@ class Database:
             return False
 
     def get_type_guarent_id(self, type_name):
-        """Получает ID типа гарантии по названию"""
         try:
             with self.conn.cursor() as cur:
-                # Сначала пробуем найти в таблице type_guarent
                 cur.execute("""
                             SELECT id_type_guarent
                             FROM type_guarent
@@ -777,7 +721,6 @@ class Database:
                 if result:
                     return result[0]
 
-                # Если не найдено, пробуем создать новый тип
                 cur.execute("""
                             INSERT INTO type_guarent (name_type_guarent)
                             VALUES (%s) ON CONFLICT (name_type_guarent) DO NOTHING
@@ -788,7 +731,6 @@ class Database:
                 if result:
                     return result[0]
 
-                # Если все еще нет, получаем существующий
                 cur.execute("SELECT id_type_guarent FROM type_guarent WHERE name_type_guarent = %s", (type_name,))
                 result = cur.fetchone()
                 return result[0] if result else 1
@@ -798,7 +740,6 @@ class Database:
             return 1
 
     def ensure_type_guarent_exists(self, type_name):
-        """Убеждается, что тип гарантии существует, возвращает ID"""
         try:
             print(f"    🔍 ensure_type_guarent_exists: ищем тип '{type_name}'")
             with self.conn.cursor() as cur:
@@ -809,7 +750,6 @@ class Database:
                     print(f"    ✅ Тип найден: ID {result[0]}")
                     return result[0]
 
-                # Если не найден, создаем новый
                 print(f"    🆕 Создаем новый тип: '{type_name}'")
                 cur.execute("""
                             INSERT INTO type_guarent (name_type_guarent)
@@ -822,7 +762,6 @@ class Database:
                     print(f"    ✅ Новый тип создан: ID {result[0]}")
                     return result[0]
 
-                # Если конфликт, снова ищем
                 cur.execute("SELECT id_type_guarent FROM type_guarent WHERE name_type_guarent = %s", (type_name,))
                 result = cur.fetchone()
                 if result:
@@ -837,7 +776,6 @@ class Database:
             return None
 
     def add_bank_guarent(self, number_guarent, start_date, term_date, type_guarent_id):
-        """Добавляет банковскую гарантию"""
         try:
             print(f"    🆕 add_bank_guarent: создаем гарантию '{number_guarent}' с типом ID {type_guarent_id}")
             with self.conn.cursor() as cur:
@@ -916,7 +854,6 @@ class Database:
             return None
 
     def update_addagreement(self, agreement_id, number_agreement, start_date, description, file_path):
-        """Обновляет дополнительное соглашение"""
         try:
             with self.conn.cursor() as cur:
                 cur.execute("""
@@ -936,7 +873,6 @@ class Database:
 
     # извлечение данных из базы данных
     def get_guarantees_by_contract(self, contract_id):
-        """Возвращает список банковских гарантий для указанного договора."""
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
@@ -956,11 +892,9 @@ class Database:
             return []
 
     def get_guarent_by_number(self, number_guarent, contract_id=None):
-        """Получает гарантию по номеру (исправленная версия)"""
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
                 if contract_id:
-                    # Правильное сравнение типов - передаем строку как строку
                     cur.execute("""
                                 SELECT bg.*
                                 FROM bank_guarent bg
@@ -980,7 +914,6 @@ class Database:
             return None
 
     def get_retention_by_contract(self, contract_id):
-        """Возвращает список гарантийных удержаний для указанного договора."""
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
@@ -997,7 +930,6 @@ class Database:
             return []
 
     def get_addagreements_by_contract(self, contract_id):
-        """Возвращает список дополнительных соглашений для указанного договора."""
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
@@ -1016,7 +948,6 @@ class Database:
             return []
 
     def get_warranty_retention_by_contract(self, contract_id):
-        """Получить гарантийное удержание по договору"""
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
@@ -1030,7 +961,6 @@ class Database:
             return []
 
     def get_addagreement_by_number(self, number_agreement, contract_id=None):
-        """Возвращает запись дополнительного соглашения по номеру и договору"""
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
                 if contract_id:
@@ -1044,7 +974,7 @@ class Database:
                                 FROM addagreement
                                 WHERE contract_id = %s
                                   AND number_agreement = %s
-                                """, (contract_id, str(number_agreement)))  # Исправлено: number_agreement как строка
+                                """, (contract_id, str(number_agreement)))
                 else:
                     cur.execute("""
                                 SELECT id_addagreement,
@@ -1055,14 +985,13 @@ class Database:
                                        file_agreement
                                 FROM addagreement
                                 WHERE number_agreement = %s
-                                """, (str(number_agreement),))  # Исправлено: number_agreement как строка
+                                """, (str(number_agreement),))
                 return cur.fetchone()
         except Exception as e:
             print(f"[Ошибка] get_addagreement_by_number: {e}")
             return None
 
     def delete_warranty_retention(self, retention_id):
-        """Удаляет гарантийное удержание"""
         try:
             with self.conn.cursor() as cur:
                 cur.execute("DELETE FROM warrantyretention WHERE id_warrantyretention = %s", (retention_id,))
@@ -1074,9 +1003,7 @@ class Database:
             return False
 
     # Управление всеми табличами
-
     def _get_primary_key(self, table_name):
-        """Возвращает имя первичного ключа таблицы"""
         try:
             with self.conn.cursor() as cur:
                 cur.execute("""
@@ -1093,7 +1020,6 @@ class Database:
             return None
 
     def get_table_columns(self, table_name):
-        """Возвращает список колонок указанной таблицы с информацией о типах"""
         try:
             with self.conn.cursor() as cur:
                 cur.execute("""
@@ -1109,9 +1035,6 @@ class Database:
             return []
 
     def get_foreign_key_reference(self, table_name, column_name):
-        """
-        Возвращает имя таблицы, на которую ссылается внешний ключ.
-        """
         sql = """
               SELECT ccu.table_name AS reference_table
               FROM information_schema.table_constraints AS tc
@@ -1136,18 +1059,12 @@ class Database:
             return None
 
     def get_foreign_key_values(self, foreign_table):
-        """
-        Возвращает список значений внешнего ключа для указанной таблицы.
-        :return: Список кортежей (id, описание)
-        """
         try:
-            # Получаем имя первичного ключа таблицы (обычно id или id_xxx)
             pk_field = self._get_primary_key(foreign_table)
             if not pk_field:
                 print(f"⚠️ Не найден первичный ключ для таблицы {foreign_table}")
                 return []
 
-            # Находим первое текстовое поле (для отображения)
             with self.conn.cursor() as cur:
                 cur.execute("""
                             SELECT column_name
@@ -1158,7 +1075,7 @@ class Database:
                             ORDER BY ordinal_position LIMIT 1;
                             """, (foreign_table,))
                 text_col = cur.fetchone()
-                text_col = text_col[0] if text_col else pk_field  # fallback — показываем сам id
+                text_col = text_col[0] if text_col else pk_field
 
             sql = f"""
                 SELECT {pk_field}::text, COALESCE({text_col}::text, '') 
@@ -1176,13 +1093,10 @@ class Database:
             return []
 
     def insert_record(self, table_name, data):
-        """Добавляет запись в любую таблицу"""
         try:
-            # Фильтруем пустые значения для числовых полей
             filtered_data = {}
             for key, value in data.items():
                 if value == "":
-                    # Для пустых строк в числовых полях устанавливаем NULL
                     if self._is_numeric_field(table_name, key):
                         filtered_data[key] = None
                     else:
@@ -1204,7 +1118,6 @@ class Database:
             return False
 
     def _is_numeric_field(self, table_name, column_name):
-        """Проверяет, является ли поле числовым"""
         try:
             with self.conn.cursor() as cur:
                 cur.execute("""
@@ -1224,7 +1137,6 @@ class Database:
             return False
 
     def get_table_records(self, table_name):
-        """Получает все записи любой таблицы"""
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(f"SELECT * FROM {table_name}")
@@ -1234,7 +1146,6 @@ class Database:
             return []
 
     def add_record(self, table_name, data: dict):
-        """Добавляет запись в указанную таблицу (универсально)"""
         try:
             columns = ', '.join(data.keys())
             placeholders = ', '.join(['%s'] * len(data))
@@ -1252,24 +1163,19 @@ class Database:
             return False
 
     def update_record(self, table_name, record_id, data: dict, id_field=None):
-        """Редактирует запись в таблице (универсально)"""
         try:
-            # Обрабатываем данные перед обновлением
             processed_data = {}
             for key, value in data.items():
-                # Для полей даты: если пустое или строка 'None' - используем NULL
                 if any(date_keyword in key.lower() for date_keyword in ['date', 'term']):
                     if value is None or value == "" or str(value).lower() == 'none':
-                        processed_data[key] = None  # Будет преобразовано в NULL
+                        processed_data[key] = None
                     else:
                         processed_data[key] = value
                 else:
-                    # Для остальных полей оставляем как есть
                     processed_data[key] = value
 
             id_field = id_field or self._get_primary_key(table_name)
 
-            # Формируем SET выражение с учетом NULL для дат
             set_parts = []
             values = []
             for key, value in processed_data.items():
@@ -1296,7 +1202,6 @@ class Database:
             return False
 
     def delete_record(self, table_name, record_id, id_field=None):
-        """Удаляет запись из таблицы (универсально)"""
         try:
             id_field = id_field or self._get_primary_key(table_name)
             with self.conn.cursor() as cur:
@@ -1306,9 +1211,9 @@ class Database:
         except Exception as e:
             print(f"Ошибка удаления записи {record_id} из {table_name}: {e}")
             return False
-    # ---------- ЗАКРЫТИЕ ----------
+
+    # ЗАКРЫТИЕ
 
     def close(self):
-        """Закрывает соединение с базой данных"""
         if self.conn:
             self.conn.close()

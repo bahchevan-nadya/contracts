@@ -1,4 +1,3 @@
-# manage_table.py — Окно управления таблицами
 from pathlib import Path
 
 from PyQt6.QtWidgets import *
@@ -33,7 +32,6 @@ class FileField(QWidget):
             self.path_changed.emit(path)
 
     def value(self) -> str:
-        """Вернёт выбранный путь (строкой)."""
         return self.le.text()
 
     def file_bytes(self) -> bytes | None:
@@ -53,7 +51,6 @@ class AddRecordDialog(QDialog):
         layout = QVBoxLayout()
 
         for col in columns:
-            # Пропускаем первичный ключ (автоинкремент)
             pk_name = self.db._get_primary_key(self.table_name)
             if pk_name and col == pk_name:
                 continue
@@ -88,16 +85,13 @@ class AddRecordDialog(QDialog):
         self.btn_save.clicked.connect(self.accept)
         layout.addWidget(self.btn_save)
         self.setLayout(layout)
-        #Автоматическая подборка размера окна
         self.layout().setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
         self.adjustSize()
 
     def _is_auto_increment_field(self, column_name):
-        """Определяет, является ли поле автоинкрементным (только id)"""
         return column_name.lower() == 'id'
 
     def _is_date_field(self, column_name):
-        """Определяет, является ли поле датой"""
         date_indicators = ['date', 'срок', 'дата', 'подписания', 'создания', 'term']
         return any(indicator in column_name.lower() for indicator in date_indicators)
 
@@ -105,10 +99,8 @@ class AddRecordDialog(QDialog):
         data = {}
         for col, inp in self.inputs.items():
             if isinstance(inp, QDateEdit):
-                # Преобразуем дату в формат PostgreSQL
                 data[col] = inp.date().toString("yyyy-MM-dd")
             elif isinstance(inp, QComboBox):
-                # Берём только ID, игнорируя остальные части описания
                 current_text = inp.currentText()
                 if current_text:
                     parts = current_text.split(' - ')
@@ -120,7 +112,6 @@ class AddRecordDialog(QDialog):
         return data
 
 class ManageTableWindow(QDialog):
-    """Окно для управления таблицами базы данных"""
 
     def __init__(self, db: Database):
         super().__init__()
@@ -133,7 +124,7 @@ class ManageTableWindow(QDialog):
         main_layout = QVBoxLayout()
         self.setLayout(main_layout)
 
-        # --- Выбор таблицы ---
+        # Выбор таблицы
         self.table_selector = QComboBox()
         self.tables = [
             "addagreement", "bank_guarent", "contract", "counterparty", "guarent_contract",
@@ -143,12 +134,12 @@ class ManageTableWindow(QDialog):
         self.table_selector.currentIndexChanged.connect(self.load_table_data)
         main_layout.addWidget(self.table_selector)
 
-        # --- Таблица данных ---
+        # Таблица данных
         self.table = QTableWidget()
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         main_layout.addWidget(self.table)
 
-        # --- Кнопки управления ---
+        # Кнопки управления
         btn_layout = QHBoxLayout()
         self.btn_refresh = QPushButton("Обновить")
         self.btn_refresh.clicked.connect(self.load_table_data)
@@ -163,7 +154,7 @@ class ManageTableWindow(QDialog):
             btn_layout.addWidget(btn)
         main_layout.addLayout(btn_layout)
 
-        # --- Загрузка первой таблицы ---
+        # Загрузка первой таблицы
         self.load_table_data()
 
     def load_table_data(self):
@@ -197,7 +188,6 @@ class ManageTableWindow(QDialog):
             table = self.current_table
             columns = self.db.get_table_columns(table)
 
-            # Фильтруем auto-increment поля
             editable_columns = [col for col in columns if not self._is_auto_increment_field(col)]
 
             if not editable_columns:
@@ -208,7 +198,6 @@ class ManageTableWindow(QDialog):
             if dialog.exec():
                 data = dialog.get_data()
 
-                # Проверяем обязательные поля (не пустые строки)
                 for field, value in data.items():
                     if value == "" and self._is_required_field(field):
                         QMessageBox.warning(self, "Ошибка", f"Поле '{field}' обязательно для заполнения.")
@@ -223,12 +212,9 @@ class ManageTableWindow(QDialog):
             print(traceback.format_exc())
 
     def _is_auto_increment_field(self, column_name):
-        """Определяет, является ли поле автоинкрементным (только id)"""
         return column_name.lower() == 'id'
 
     def _is_required_field(self, column_name):
-        """Определяет, является ли поле обязательным (здесь можно добавить логику)"""
-        # Пока считаем все поля необязательными, кроме тех, что явно требуются
         return False
 
     def edit_record(self):
@@ -259,7 +245,6 @@ class ManageTableWindow(QDialog):
             self.load_table_data()
 
     def collect_input_data(self):
-        """Пример — собирает данные из таблицы (или из полей формы)"""
         data = {}
         for col in range(self.table.columnCount()):
             header = self.table.horizontalHeaderItem(col).text()

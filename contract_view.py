@@ -1,4 +1,3 @@
-# contract_view.py — диалог просмотра договора
 import os
 import webbrowser
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
@@ -8,7 +7,6 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 class ContractViewDialog(QDialog):
-    """Диалог для просмотра карточки договора без возможности редактирования"""
 
     def __init__(self, db, contract_id, parent=None):
         super().__init__(parent)
@@ -21,20 +19,16 @@ class ContractViewDialog(QDialog):
         self.load_contract_data()
 
     def init_ui(self):
-        """Инициализация интерфейса"""
         layout = QVBoxLayout()
 
-        # Заголовок
         title = QLabel("Карточка договора (просмотр)")
         title.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
-        # --- Основная информация о договоре ---
         main_info_group = QGroupBox("Основная информация")
         main_info_layout = QVBoxLayout()
 
-        # Основные поля договора
         self.lbl_number = QLabel()
         self.lbl_type = QLabel()
         self.lbl_counterparty = QLabel()
@@ -62,11 +56,9 @@ class ContractViewDialog(QDialog):
         main_info_group.setLayout(main_info_layout)
         layout.addWidget(main_info_group)
 
-        # --- Файл договора ---
         file_group = QGroupBox("Файлы договора")
         file_layout = QVBoxLayout()
 
-        # Основной договор
         contract_file_layout = QHBoxLayout()
         contract_file_layout.addWidget(QLabel("<b>Основной договор:</b>"))
         self.lbl_contract_file = QLabel("Файл не прикреплен")
@@ -82,7 +74,6 @@ class ContractViewDialog(QDialog):
         file_group.setLayout(file_layout)
         layout.addWidget(file_group)
 
-        # --- Банковские гарантии ---
         guarantees_group = QGroupBox("Банковские гарантии")
         guarantees_layout = QVBoxLayout()
         self.list_guarantees = QListWidget()
@@ -90,7 +81,6 @@ class ContractViewDialog(QDialog):
         guarantees_group.setLayout(guarantees_layout)
         layout.addWidget(guarantees_group)
 
-        # --- Гарантийные удержания ---
         retentions_group = QGroupBox("Гарантийные удержания")
         retentions_layout = QVBoxLayout()
         self.list_retentions = QListWidget()
@@ -98,25 +88,20 @@ class ContractViewDialog(QDialog):
         retentions_group.setLayout(retentions_layout)
         layout.addWidget(retentions_group)
 
-        # --- Дополнительные соглашения ---
         agreements_group = QGroupBox("Дополнительные соглашения")
         agreements_layout = QVBoxLayout()
 
-        # Информация о выбранном соглашении
         self.lbl_selected_agreement = QLabel("Выберите соглашение из списка")
         self.lbl_selected_agreement.setStyleSheet("color: gray; font-style: italic;")
 
-        # Кнопка открытия файла соглашения
         self.btn_open_agreement_file = QPushButton("📄 Открыть файл соглашения")
         self.btn_open_agreement_file.clicked.connect(self.open_selected_agreement_file)
         self.btn_open_agreement_file.setEnabled(False)
 
-        # Список соглашений
         self.list_agreements = QListWidget()
         self.list_agreements.itemSelectionChanged.connect(self.on_agreement_selection_changed)
         self.list_agreements.itemDoubleClicked.connect(self.open_agreement_file)
 
-        # Layout для кнопки и информации
         agreement_controls_layout = QHBoxLayout()
         agreement_controls_layout.addWidget(self.lbl_selected_agreement)
         agreement_controls_layout.addStretch()
@@ -127,7 +112,6 @@ class ContractViewDialog(QDialog):
         agreements_group.setLayout(agreements_layout)
         layout.addWidget(agreements_group)
 
-        # --- Кнопки управления ---
         button_layout = QHBoxLayout()
         self.btn_close = QPushButton("Закрыть")
         self.btn_close.clicked.connect(self.close)
@@ -138,7 +122,6 @@ class ContractViewDialog(QDialog):
         self.setLayout(layout)
 
     def on_agreement_selection_changed(self):
-        """Обрабатывает изменение выбора соглашения в списке"""
         selected_items = self.list_agreements.selectedItems()
         if selected_items:
             item = selected_items[0]
@@ -154,7 +137,6 @@ class ContractViewDialog(QDialog):
             self.btn_open_agreement_file.setEnabled(False)
 
     def load_contract_data(self):
-        """Загружает данные договора для просмотра"""
         try:
             contract = self.db.get_contract_by_id(self.contract_id)
             if not contract:
@@ -162,7 +144,6 @@ class ContractViewDialog(QDialog):
                 self.close()
                 return
 
-            # Основные поля договора
             self.lbl_number.setText(str(contract.get("number_contract", "")))
             self.lbl_type.setText(contract.get("type_name", ""))
             self.lbl_counterparty.setText(contract.get("counterparty_name", ""))
@@ -170,14 +151,12 @@ class ContractViewDialog(QDialog):
             self.lbl_object.setText(contract.get("object_name", ""))
             self.lbl_address.setText(contract.get("address", ""))
 
-            # Даты
             start_date = contract.get("start_date")
             term_date = contract.get("term_contract")
 
             self.lbl_start_date.setText(start_date.strftime("%d.%m.%Y") if start_date else "Не указана")
             self.lbl_term_date.setText(term_date.strftime("%d.%m.%Y") if term_date else "Не указан")
 
-            # Файл договора
             file_contract = contract.get("file_contract")
             if file_contract and os.path.exists(file_contract):
                 self.lbl_contract_file.setText(os.path.basename(file_contract))
@@ -187,20 +166,16 @@ class ContractViewDialog(QDialog):
                 self.lbl_contract_file.setText("Файл не найден")
                 self.btn_open_contract_file.setEnabled(False)
 
-            # Банковские гарантии
             self.load_guarantees(contract.get("bank_guarent", []))
 
-            # Гарантийные удержания
             self.load_retentions(contract.get("warrantyretention", []))
 
-            # Дополнительные соглашения
             self.load_agreements(contract.get("addagreements", []))
 
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка при загрузке данных: {e}")
 
     def load_guarantees(self, guarantees):
-        """Загружает список банковских гарантий"""
         self.list_guarantees.clear()
         if not guarantees:
             self.list_guarantees.addItem("Банковские гарантии отсутствуют")
@@ -215,7 +190,6 @@ class ContractViewDialog(QDialog):
             self.list_guarantees.addItem(item)
 
     def load_retentions(self, retentions):
-        """Загружает список гарантийных удержаний"""
         self.list_retentions.clear()
         if not retentions:
             self.list_retentions.addItem("Гарантийные удержания отсутствуют")
@@ -230,7 +204,6 @@ class ContractViewDialog(QDialog):
             self.list_retentions.addItem(item)
 
     def load_agreements(self, agreements):
-        """Загружает список дополнительных соглашений"""
         self.list_agreements.clear()
         if not agreements:
             self.list_agreements.addItem("Дополнительные соглашения отсутствуют")
@@ -249,7 +222,6 @@ class ContractViewDialog(QDialog):
             item = QListWidgetItem(display)
             item.setData(Qt.ItemDataRole.UserRole, file_path)
 
-            # Добавляем иконку если файл существует
             if file_path and os.path.exists(file_path):
                 item.setToolTip(f"Файл: {os.path.basename(file_path)}\nДвойной клик для открытия")
             else:
@@ -259,7 +231,6 @@ class ContractViewDialog(QDialog):
             self.list_agreements.addItem(item)
 
     def open_contract_file(self):
-        """Открывает файл основного договора"""
         if hasattr(self, 'contract_file_path') and self.contract_file_path:
             try:
                 webbrowser.open(self.contract_file_path)
@@ -267,17 +238,14 @@ class ContractViewDialog(QDialog):
                 QMessageBox.critical(self, "Ошибка", f"Не удалось открыть файл договора:\n{e}")
 
     def open_agreement_file(self, item):
-        """Открывает файл дополнительного соглашения при двойном клике"""
         self.open_agreement_file_by_item(item)
 
     def open_selected_agreement_file(self):
-        """Открывает файл выбранного дополнительного соглашения"""
         selected_items = self.list_agreements.selectedItems()
         if selected_items:
             self.open_agreement_file_by_item(selected_items[0])
 
     def open_agreement_file_by_item(self, item):
-        """Открывает файл соглашения по переданному элементу списка"""
         file_path = item.data(Qt.ItemDataRole.UserRole)
         if file_path and os.path.exists(file_path):
             try:
