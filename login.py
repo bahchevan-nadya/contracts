@@ -53,7 +53,7 @@ class LoginWindow(QWidget):
         vbox.addStretch()
         vbox.addWidget(self.input_login)
         vbox.addWidget(self.input_password)
-        vbox.addWidget(self.check_show_passwd)  # размещаем чекбокс ниже строки пароля
+        vbox.addWidget(self.check_show_passwd)
         vbox.addWidget(self.btn_login)
         vbox.addStretch()
         self.setLayout(vbox)

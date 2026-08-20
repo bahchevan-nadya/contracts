@@ -44,7 +44,6 @@ class AddRecordDialog(QDialog):
     def __init__(self, columns, table_name, parent=None, opt=None, db_instane=None):
         super().__init__(parent)
         self.setWindowTitle("Добавление записи")
-        # self.resize(400, 400)
         self.setStyleSheet(open("modtfil_app/styles.qss", "r", encoding="utf-8").read())
 
         self.inputs = {}
@@ -128,7 +127,7 @@ class ManageTableWindow(QDialog):
         self.db = db
         self.current_table = None
         self.setWindowTitle("Управление таблицами")
-        self.setFixedSize(900, 600)
+        self.setMinimumSize(900, 600)
         self.setStyleSheet(open("modtfil_app/styles.qss", "r", encoding="utf-8").read())
 
         main_layout = QVBoxLayout()

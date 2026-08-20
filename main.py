@@ -42,6 +42,7 @@ class MainWindow(QMainWindow):
         self.cmb_type = None
         self.setWindowTitle("Система учёта договоров — MODTFIL")
         self.setMinimumSize(1100, 700)
+        self.showMaximized()
 
         # Подключаем стили
         self.setStyleSheet(open("modtfil_app/styles.qss", "r", encoding="utf-8").read())
